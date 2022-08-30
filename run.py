@@ -64,6 +64,7 @@ def logout():
     id_token_hint = session.get('id_token', None)
     session.pop('user', None)
     session.pop('id_token', None)
+    session.pop('token', None)
     #redirect先で/と別のとこに遷移したい場合、以下のように設定を追加
     #&post_logout_redirect_uri='+parse.quote('リダイレクト先URL')
     url = f'http://{keycloak_host}/realms/{keycloak_relm_id}/protocol/openid-connect/logout?id_token_hint={id_token_hint}&post_logout_redirect_uri='+parse.quote('http://localhost:3003')
