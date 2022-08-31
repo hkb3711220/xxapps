@@ -4,7 +4,6 @@ from authlib.integrations.flask_client import OAuth
 from urllib import parse
 import logging
 import os
-from authlib.integrations.requests_client import OAuth2Session
 
 os.environ['AUTHLIB_INSECURE_TRANSPORT'] = '1' #redirect to http not https 
 
@@ -15,16 +14,21 @@ app.secret_key = '!secret'
 #keycloak関連を定義
 keycloak_host = "172.18.0.2:8080" #環境変数
 keycloak_relm_id = 'demo' #環境変数
+client_id = 'xxapps'
+client_secret='wW6Uryh9rLviHRzzv68PH032TySSnZXo'
+scope='openid email profile',
+access_token_url=f'http://{keycloak_host}/realms/{keycloak_relm_id}/protocol/openid-connect/token'
+authorize_url=f'http://{keycloak_host}/realms/{keycloak_relm_id}/protocol/openid-connect/auth'
 oauth = OAuth(app)
 oauth.register(
     name="keycloak", 
-    client_id='xxapps', #環境変数
-    client_secret='wW6Uryh9rLviHRzzv68PH032TySSnZXo', #環境変数
+    client_id=client_id, #環境変数
+    client_secret=client_secret, #環境変数
     api_base_url= f'http://{keycloak_host}/realms/{keycloak_relm_id}/protocol/openid-connect/',
     request_token_url=None,
     jwks_uri=f'http://{keycloak_host}/realms/{keycloak_relm_id}/protocol/openid-connect/certs', #id_token取得するため
-    access_token_url=f'http://{keycloak_host}/realms/{keycloak_relm_id}/protocol/openid-connect/token',
-    authorize_url=f'http://{keycloak_host}/realms/{keycloak_relm_id}/protocol/openid-connect/auth',
+    access_token_url=access_token_url,
+    authorize_url=authorize_url,
     client_kwargs={
         'scope': 'openid email profile',
     }
@@ -35,9 +39,27 @@ oauth.register(
 def index():
     user = dict(session).get('user', None)
     token = dict(session).get('token', None)
-
-    if user:
-        return render_template("home.html", user=user, token=token)
+    
+    if user and token:
+        #ログインプロセス
+        from authlib.integrations.requests_client import OAuth2Session
+        scope = token["scope"]
+        oauth_session = OAuth2Session(
+            client_id, 
+            client_secret, 
+            authorization_endpoint=authorize_url, 
+            token_endpoint=access_token_url,
+            scope=scope, 
+            token=token)
+            
+        try:
+            token = oauth_session.refresh_token(
+                access_token_url, 
+                refresh_token=token['refresh_token']
+                )
+            return render_template("home.html", user=user, token=token)
+        except:
+            return render_template("login.html")
     else:
         return render_template("login.html")
 
@@ -75,4 +97,4 @@ def logout():
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=3003)
+    app.run(host='0.0.0.0', port=3003, debug=True)
