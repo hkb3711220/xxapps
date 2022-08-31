@@ -20,7 +20,7 @@ body {
 }
 
 .logo {
-    font-size: 35px;
+    font-size: 1.5rem;
     font-weight: bold;
     margin-left: 20px;
     color: white
@@ -48,7 +48,7 @@ body {
 
 .button {
     width: 80%;
-    height: 3vh;
+    height: 5vh;
     background-color: blueviolet;
     display: flex;
     justify-content: center;
@@ -74,9 +74,9 @@ body {
 
 .social-icon {
     color: white;
-    width: 32px;
-    height: 32px;
-    padding: 15px;
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 0.3rem;
     border-radius: 50%;
     border: 1px solid white;
     display: flex;
