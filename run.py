@@ -12,21 +12,22 @@ app = Flask(__name__)
 app.secret_key = '!secret'
 #keycloak関連を定義
 BASE_URL = 'http://localhost:3003'
-KEYCLOAK_HOST = "172.18.0.2:8080" #環境変数
-KEYCLOAK_RELM_ID = 'demo' #環境変数
-CLIENT_ID = 'xxapps'
-CLIENT_SECRET ='wW6Uryh9rLviHRzzv68PH032TySSnZXo'
+
+KEYCLOAK_HOST = os.getenv('KEYCLOAK_HOST')  
+KEYCLOAK_RELM_ID = os.getenv('KEYCLOAK_RELM_ID') 
+CLIENT_ID = os.getenv('CLIENT_ID')
+CLIENT_SECRET = os.getenv('CLIENT_SECRET')
 API_BASE_URL = f'http://{KEYCLOAK_HOST}/realms/{KEYCLOAK_RELM_ID}/protocol/openid-connect'
 ACCESS_TOKEN_URL = f'{API_BASE_URL}/token'
 AUTHORIZE_RUL = f'{API_BASE_URL}/auth'
 JWT_URI = f'{API_BASE_URL}/certs'
 
-
+#Oauth clientの設定
 oauth = OAuth(app)
 oauth.register(
     name="keycloak", 
-    client_id=CLIENT_ID, #環境変数
-    client_secret=CLIENT_SECRET, #環境変数
+    client_id=CLIENT_ID, 
+    client_secret=CLIENT_SECRET, 
     api_base_url=API_BASE_URL+'/',
     request_token_url=None,
     jwks_uri=JWT_URI, #id_token取得するため
@@ -43,7 +44,7 @@ def index():
     #既存のToken情報でユーザ情報取得できるかご確認する。
     if token:
         resp = oauth.keycloak.get('userinfo', token=token)
-        # HTTP 401 Unauthorized ではなく場合、ログイン後の画面を出力
+        # HTTP 401 Unauthorized ではなく場合、ログイン後の画面を出力(あくまでサンプルなので、ここで確認する必要があります)
         if resp.status_code != 401:
             user = resp.json()
             if (token['expires_at'] - time()) <= 0:
@@ -83,7 +84,7 @@ def logout():
     #&post_logout_redirect_uri='+parse.quote('リダイレクト先URL')
     url = f'{API_BASE_URL}/logout' + \
         f'?id_token_hint={id_token_hint}&post_logout_redirect_uri=' + \
-        parse.quote('http://localhost:3003')
+        parse.quote(BASE_URL)
 
     return redirect(url)
 
