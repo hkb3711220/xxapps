@@ -37,10 +37,10 @@ pip install -r requirements.txt
 
 環境変数設定
 ```bash
-KEYCLOAK_HOST = 'http://localhost:8080'
-KEYCLOAK_RELM_ID = 'demo' #作ったRealmの名前
-CLIENT_ID = 'demo'　#作ったClientの名前
-CLIENT_SECRET = '取得したSecretの値'
+export KEYCLOAK_HOST='localhost:8080'
+export KEYCLOAK_RELM_ID='demo' #作ったRealmの名前
+export CLIENT_ID='demo'　#作ったClientの名前
+export CLIENT_SECRET='取得したSecretの値'
 ```
 アプリ実行
 ```bash

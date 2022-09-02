@@ -13,10 +13,10 @@ app.secret_key = '!secret'
 #keycloak関連を定義
 BASE_URL = 'http://localhost:3003'
 
-KEYCLOAK_HOST = os.getenv('KEYCLOAK_HOST')  
-KEYCLOAK_RELM_ID = os.getenv('KEYCLOAK_RELM_ID') 
-CLIENT_ID = os.getenv('CLIENT_ID')
-CLIENT_SECRET = os.getenv('CLIENT_SECRET')
+KEYCLOAK_HOST = os.environ['KEYCLOAK_HOST']
+KEYCLOAK_RELM_ID = os.environ['KEYCLOAK_RELM_ID']
+CLIENT_ID = os.environ['CLIENT_ID']
+CLIENT_SECRET = os.environ['CLIENT_SECRET']
 API_BASE_URL = f'http://{KEYCLOAK_HOST}/realms/{KEYCLOAK_RELM_ID}/protocol/openid-connect'
 ACCESS_TOKEN_URL = f'{API_BASE_URL}/token'
 AUTHORIZE_RUL = f'{API_BASE_URL}/auth'
