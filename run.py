@@ -1,4 +1,3 @@
-from http import client
 from flask import Flask
 from time import time
 from flask import url_for, session, redirect, render_template
@@ -11,13 +10,12 @@ os.environ['AUTHLIB_INSECURE_TRANSPORT'] = '1' #redirect to http not https
 app = Flask(__name__)
 app.secret_key = '!secret'
 #keycloak関連を定義
-BASE_URL = 'http://localhost:3003'
-
+BASE_URL = os.environ['BASE_URL']
 KEYCLOAK_HOST = os.environ['KEYCLOAK_HOST']
 KEYCLOAK_RELM_ID = os.environ['KEYCLOAK_RELM_ID']
 CLIENT_ID = os.environ['CLIENT_ID']
 CLIENT_SECRET = os.environ['CLIENT_SECRET']
-API_BASE_URL = f'http://{KEYCLOAK_HOST}/realms/{KEYCLOAK_RELM_ID}/protocol/openid-connect'
+API_BASE_URL = f'https://{KEYCLOAK_HOST}/realms/{KEYCLOAK_RELM_ID}/protocol/openid-connect'
 ACCESS_TOKEN_URL = f'{API_BASE_URL}/token'
 AUTHORIZE_RUL = f'{API_BASE_URL}/auth'
 JWT_URI = f'{API_BASE_URL}/certs'
@@ -89,4 +87,4 @@ def logout():
     return redirect(url)
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=3003, debug=True)
+    app.run(host='0.0.0.0', port=3000, debug=True)
