@@ -8,9 +8,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-#環境変数
-os.environ['AUTHLIB_INSECURE_TRANSPORT'] = '1' 
-#keycloak関連を定義
+# 環境変数
+os.environ['AUTHLIB_INSECURE_TRANSPORT'] = '1'
+# keycloak関連を定義
 BASE_URL = os.environ['BASE_URL']
 BASE_DIR = os.path.dirname(__file__)
 KEYCLOAK_HOST = os.environ['KEYCLOAK_HOST']
@@ -22,18 +22,18 @@ ACCESS_TOKEN_URL = f'{API_BASE_URL}/token'
 AUTHORIZE_RUL = f'{API_BASE_URL}/auth'
 JWT_URI = f'{API_BASE_URL}/certs'
 
-#app定義
+# app定義
 app = Flask(__name__)
 app.secret_key = '!secret'
-#OAuth clientの設定
+# OAuth clientの設定
 oauth = OAuth(app)
 oauth.register(
-    name="keycloak", 
-    client_id=CLIENT_ID, 
-    client_secret=CLIENT_SECRET, 
+    name="keycloak",
+    client_id=CLIENT_ID,
+    client_secret=CLIENT_SECRET,
     api_base_url=API_BASE_URL+'/',
     request_token_url=None,
-    jwks_uri=JWT_URI, #id_token取得するため
+    jwks_uri=JWT_URI,  # id_token取得するため
     access_token_url=ACCESS_TOKEN_URL,
     authorize_url=AUTHORIZE_RUL,
     client_kwargs={
@@ -42,14 +42,16 @@ oauth.register(
 )
 client = OAuth2Session(
     CLIENT_ID,
-    CLIENT_SECRET, 
+    CLIENT_SECRET,
     authorization_endpoint=AUTHORIZE_RUL,
     token_endpoint=ACCESS_TOKEN_URL,
 )
 
+
 @app.route('/')
 def index():
     return render_template('login.html')
+
 
 @app.route('/xxapp')
 def xxapp():
@@ -69,7 +71,9 @@ def xxapp():
                 return render_template('login.html', message=str(e))
         return render_template("home.html", user=userinfo, token=token)
 
-#login url
+# login url
+
+
 @app.route('/login')
 def login():
     client = oauth.create_client('keycloak')
@@ -77,7 +81,9 @@ def login():
 
     return client.authorize_redirect(redirect_uri)
 
-#callback url
+# callback url
+
+
 @app.route('/auth')
 def auth():
     token = oauth.keycloak.authorize_access_token()
@@ -87,17 +93,20 @@ def auth():
 
     return redirect('/xxapp')
 
-#logout url
+# logout url
+
+
 @app.route('/logout')
 def logout():
     token = session.get('token', None)
     refresh_token = token['refresh_token']
     session.pop('token', None)
     session.pop('user', None)
-    #Revoke Endpointをコールし、Client Session()
+    # Revoke Endpointをコールし、Client Session()
     client.revoke_token(url=f'{API_BASE_URL}/revoke', token=refresh_token)
 
     return redirect('/')
+
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=3000, debug=True)
