@@ -1,25 +1,37 @@
 from flask import Flask
 from time import time
 from flask import url_for, session, redirect, render_template
+from flask_login import LoginManager, login_user, logout_user, current_user, login_required, UserMixin
+from authlib.integrations.requests_client import OAuth2Session
 from authlib.integrations.flask_client import OAuth
-from urllib import parse
 import os
+import logging
 
-os.environ['AUTHLIB_INSECURE_TRANSPORT'] = '1' #redirect to http not https 
-#app定義
-app = Flask(__name__)
-app.secret_key = '!secret'
+logger = logging.getLogger(__name__)
+
+class LoginUser(UserMixin):
+    def __init__(self, user_id):
+        self.id = user_id
+
+#環境変数
+os.environ['AUTHLIB_INSECURE_TRANSPORT'] = '1' 
 #keycloak関連を定義
 BASE_URL = os.environ['BASE_URL']
+BASE_DIR = os.path.dirname(__file__)
 KEYCLOAK_HOST = os.environ['KEYCLOAK_HOST']
 KEYCLOAK_RELM_ID = os.environ['KEYCLOAK_RELM_ID']
 CLIENT_ID = os.environ['CLIENT_ID']
 CLIENT_SECRET = os.environ['CLIENT_SECRET']
-API_BASE_URL = f'https://{KEYCLOAK_HOST}/realms/{KEYCLOAK_RELM_ID}/protocol/openid-connect'
+API_BASE_URL = f'http://{KEYCLOAK_HOST}/realms/{KEYCLOAK_RELM_ID}/protocol/openid-connect'
 ACCESS_TOKEN_URL = f'{API_BASE_URL}/token'
 AUTHORIZE_RUL = f'{API_BASE_URL}/auth'
 JWT_URI = f'{API_BASE_URL}/certs'
 
+#app定義
+app = Flask(__name__)
+app.secret_key = '!secret'
+login_manager = LoginManager()
+login_manager.init_app(app)
 #Oauth clientの設定
 oauth = OAuth(app)
 oauth.register(
@@ -35,28 +47,43 @@ oauth.register(
         'scope': 'openid email profile',
     }
 )
+client = OAuth2Session(
+    CLIENT_ID,
+    CLIENT_SECRET, 
+    authorization_endpoint=AUTHORIZE_RUL,
+    token_endpoint=ACCESS_TOKEN_URL,
+)
+
+@login_manager.user_loader
+def load_user(user_id):
+    return LoginUser(user_id)
 
 @app.route('/')
 def index():
+    return render_template('login.html')
+
+@app.route('/xxapp')
+@login_required
+def xxapp():
     token = dict(session).get('token', None)
-    #既存のToken情報でユーザ情報取得できるかご確認する。
-    if token:
-        resp = oauth.keycloak.get('userinfo', token=token)
-        # HTTP 401 Unauthorized ではなく場合、ログイン後の画面を出力(あくまでサンプルなので、ここで確認する必要があります)
-        if resp.status_code != 401:
-            user = resp.json()
-            if (token['expires_at'] - time()) <= 0:
-                from authlib.integrations.requests_client import OAuth2Session
-                client = OAuth2Session(CLIENT_ID, CLIENT_SECRET, token=token)
-                token = client.refresh_token(ACCESS_TOKEN_URL, token['refresh_token'])
-                session['token'] = token
-            return render_template("home.html", user=user, token=token)
-        else: 
-            return render_template("login.html")
-    else:
-        return render_template("login.html")
+    userinfo = dict(session).get('user', None)
 
+    if current_user.id == userinfo['sub']: 
+        if token:
+            if (token['expires_at'] - time()) <= 2:
+                try:
+                    token = client.refresh_token(
+                        url=ACCESS_TOKEN_URL,
+                        client_id=CLIENT_ID,
+                        client_secret=CLIENT_SECRET,
+                        refresh_token=token['refresh_token'])
+                    session['token'] = token
+                except Exception as e:
+                    logout_user()
+                    return render_template('login.html', message=str(e))
+            return render_template("home.html", user=userinfo, token=token)
 
+#login url
 @app.route('/login')
 def login():
     client = oauth.create_client('keycloak')
@@ -64,27 +91,33 @@ def login():
 
     return client.authorize_redirect(redirect_uri)
 
+#callback url
 @app.route('/auth')
 def auth():
     token = oauth.keycloak.authorize_access_token()
     session['token'] = token
+    user = token['userinfo']
+    session['user'] = user
 
-    return redirect('/')
+    if user:
+        current_login_user = LoginUser(user_id=user['sub'])
+        login_user(current_login_user)
 
+
+    return redirect('/xxapp')
+
+#logout url
 @app.route('/logout')
 def logout():
-    
     token = session.get('token', None)
-    id_token_hint = token['id_token']
+    refresh_token = token['refresh_token']
     session.pop('token', None)
+    session.pop('user', None)
+    logout_user()
+    #Revoke Endpointをコールし、Client Session()
+    client.revoke_token(url=f'{API_BASE_URL}/revoke', token=refresh_token)
 
-    #redirect先で/と別のとこに遷移したい場合、以下のように設定を追加
-    #&post_logout_redirect_uri='+parse.quote('リダイレクト先URL')
-    url = f'{API_BASE_URL}/logout' + \
-        f'?id_token_hint={id_token_hint}&post_logout_redirect_uri=' + \
-        parse.quote(BASE_URL)
-
-    return redirect(url)
+    return redirect('/')
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=3000, debug=True)

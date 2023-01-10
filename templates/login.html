@@ -21,6 +21,9 @@
         </div>
         <div class="content">
             <div class="login-container">
+                {% if message %}
+                <h2>{{message}}</h2>
+                {% endif %}
                 <a class="button login" href="/login">Keycloak Login</a>
             </div>
         </div>

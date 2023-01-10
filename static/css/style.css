@@ -11,7 +11,7 @@ body {
 }
 
 .navbar {
-    height: 5vh;
+    height: 100px;
     box-shadow: 0 10px 12px -12px #222;
     display: flex;
     align-items: center;
@@ -34,9 +34,11 @@ body {
 }
 
 .login-container {
+    display: flex;
+    flex-direction: column;
     margin-top: 100px;
-    width: 800px;
-    height: 10vh;
+    width: 500px;
+    height: 300px;
     position: relative;
     border:1px solid black;
     display: flex;
@@ -58,6 +60,7 @@ body {
     border-radius: 10px;
     text-decoration: none;
     transition: all 1.0s ease-out;
+    padding: 10px;
 }
 
 .button:hover {

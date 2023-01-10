@@ -37,6 +37,7 @@ pip install -r requirements.txt
 
 環境変数設定
 ```bash
+export BASE_URL="http://localhost:3000"
 export KEYCLOAK_HOST='localhost:8080'
 export KEYCLOAK_RELM_ID='demo' #作ったRealmの名前
 export CLIENT_ID='demo'　#作ったClientの名前
