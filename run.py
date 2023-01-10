@@ -1,17 +1,12 @@
 from flask import Flask
 from time import time
 from flask import url_for, session, redirect, render_template
-from flask_login import LoginManager, login_user, logout_user, current_user, login_required, UserMixin
 from authlib.integrations.requests_client import OAuth2Session
 from authlib.integrations.flask_client import OAuth
 import os
 import logging
 
 logger = logging.getLogger(__name__)
-
-class LoginUser(UserMixin):
-    def __init__(self, user_id):
-        self.id = user_id
 
 #環境変数
 os.environ['AUTHLIB_INSECURE_TRANSPORT'] = '1' 
@@ -30,9 +25,7 @@ JWT_URI = f'{API_BASE_URL}/certs'
 #app定義
 app = Flask(__name__)
 app.secret_key = '!secret'
-login_manager = LoginManager()
-login_manager.init_app(app)
-#Oauth clientの設定
+#OAuth clientの設定
 oauth = OAuth(app)
 oauth.register(
     name="keycloak", 
@@ -54,34 +47,27 @@ client = OAuth2Session(
     token_endpoint=ACCESS_TOKEN_URL,
 )
 
-@login_manager.user_loader
-def load_user(user_id):
-    return LoginUser(user_id)
-
 @app.route('/')
 def index():
     return render_template('login.html')
 
 @app.route('/xxapp')
-@login_required
 def xxapp():
     token = dict(session).get('token', None)
     userinfo = dict(session).get('user', None)
 
-    if current_user.id == userinfo['sub']: 
-        if token:
-            if (token['expires_at'] - time()) <= 2:
-                try:
-                    token = client.refresh_token(
-                        url=ACCESS_TOKEN_URL,
-                        client_id=CLIENT_ID,
-                        client_secret=CLIENT_SECRET,
-                        refresh_token=token['refresh_token'])
-                    session['token'] = token
-                except Exception as e:
-                    logout_user()
-                    return render_template('login.html', message=str(e))
-            return render_template("home.html", user=userinfo, token=token)
+    if token:
+        if (token['expires_at'] - time()) <= 2:
+            try:
+                token = client.refresh_token(
+                    url=ACCESS_TOKEN_URL,
+                    client_id=CLIENT_ID,
+                    client_secret=CLIENT_SECRET,
+                    refresh_token=token['refresh_token'])
+                session['token'] = token
+            except Exception as e:
+                return render_template('login.html', message=str(e))
+        return render_template("home.html", user=userinfo, token=token)
 
 #login url
 @app.route('/login')
@@ -99,11 +85,6 @@ def auth():
     user = token['userinfo']
     session['user'] = user
 
-    if user:
-        current_login_user = LoginUser(user_id=user['sub'])
-        login_user(current_login_user)
-
-
     return redirect('/xxapp')
 
 #logout url
@@ -113,7 +94,6 @@ def logout():
     refresh_token = token['refresh_token']
     session.pop('token', None)
     session.pop('user', None)
-    logout_user()
     #Revoke Endpointをコールし、Client Session()
     client.revoke_token(url=f'{API_BASE_URL}/revoke', token=refresh_token)
 
